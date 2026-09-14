@@ -14,7 +14,7 @@ git treats Office files as opaque blobs and reports `Binary files ... differ`. I
 
 The usual workarounds stop halfway.
 
-`soffice --headless --convert-to csv` converts **only the first sheet**. On a three-sheet workbook whose content sits in the third sheet, the CSV came out as 4 lines and the 620-cell sheet was gone. It also takes about 1.5 seconds per file once warm, and over 10 seconds on the first run.
+`soffice --headless --convert-to csv` converts **only the first sheet**: a three-sheet workbook whose content sits in the third yields a 4-line CSV with the 620-cell sheet missing. It also costs about 1.5 seconds per file once warm, and over 10 seconds on the first run.
 
 openpyxl reads every sheet, but it is slower and leaves the layout to you.
 
@@ -69,11 +69,11 @@ $ git config diff.oyomi.cachetextconv true
 
 ## Why the key carries no position
 
-This is most of what the tool is.
+Choosing between the two key schemes is most of the design.
 
-The first version emitted `Sheet!B62<TAB>value` and nothing else. Single-cell edits read well. But **inserting a row shifts every row number below it**, so adding three rows to a 620-cell sheet produced a 314-line diff.
+The default keys a line by where it sits: `Sheet!B62`, `p0042`, `t1.r003.c02`. That is the right answer when you are looking for something, because the key is the address you would type into the application.
 
-Dropping the row number from the key brings the same change down to 6 lines.
+`--row` keys a line by its content alone. That is the right answer in a diff, because **a position changes for every line below an insertion**. Three rows added to a 620-cell sheet come to 314 diff lines under address keys and 6 under content keys; three paragraphs added to a 60-paragraph document, 93 lines and 7.
 
 ```diff
 +History	A=2	C=1.1	E=added three jobs
@@ -82,9 +82,9 @@ Dropping the row number from the key brings the same change down to 6 lines.
 +Items	A=group-09	B=JOB902	C=batch	D=new job 902	E=yes
 ```
 
-docx behaves the same way. Keyed by paragraph ordinal, inserting three paragraphs into a 60-paragraph document gives a 93-line diff; without the ordinal it is 7 lines, and the version bump and the new section are readable as themselves.
+Why not use address keys everywhere and accept the noise. A 314-line diff for a three-row change is not noise a reviewer filters out; it is a diff nobody reads, which is the state this tool exists to leave.
 
-A key derived from position changes for everything after a single insertion, which stops diff from pairing lines up. So the key has to come from the content, or not exist.
+Why not build the key from a column that identifies the row, so that reordering survives as well. That requires knowing which column is the identifier, which differs per document and cannot be decided here.
 
 ## Measurements
 
@@ -104,13 +104,13 @@ $ cargo test
 $ cargo llvm-cov --summary-only
 ```
 
-Every fixture is generated in `tests/common/mod.rs` — the xlsx, docx and pptx
-packages, a workbook whose second sheet is declared but absent, a part that is
-not valid UTF-8, and a hand-built zip whose entry no reader will open. The
-repository therefore holds no binary files of its own.
+Every fixture is generated in `tests/common/mod.rs` — the xlsx, docx and pptx packages, a workbook whose second sheet is declared but absent, a part that is not valid UTF-8, and a hand-built zip whose entry no reader will open.
 
-Line coverage is 99.6%. The one uncovered branch is the defensive path for a zip
-central directory that disagrees with its own entries.
+Why not keep fixture documents as committed binaries. A tool that exists to make binaries reviewable should not carry unreviewable ones, and a fixture nobody can read is a fixture nobody can correct.
+
+What the suite asserts is a property rather than a diff size: after an insertion, the content-keyed rendering of the old document is a subsequence of the new one, and the address-keyed rendering is not.
+
+Line coverage is 99.6%. The one uncovered branch is the defensive path for a zip central directory that disagrees with its own entries.
 
 ## Not handled yet
 
