@@ -70,6 +70,18 @@ $ oyomi --sheet Items catalog.xlsx
 
 docx renders one line per paragraph and per table cell, pptx one line per paragraph with the slide number.
 
+Pictures and embedded objects are listed too, fingerprinted by the CRC32 the package already carries:
+
+```console
+$ oyomi report.docx | grep '^media'
+media	word/media/image1.png	48213	crc32:9a3f1c22
+
+$ oyomi --row report.docx | grep '^media'
+media	.png	48213	crc32:9a3f1c22
+```
+
+Swapping a screenshot changes no text at all, so without these lines a document carrying one diffs as though nothing had happened. `--row` drops the part name, because saving can renumber image1 and image2 without either picture changing.
+
 ## As a git textconv driver
 
 ```console
@@ -131,8 +143,6 @@ What the suite asserts is a property rather than a diff size: after an insertion
 Line coverage is 99.6%. The one uncovered branch is the defensive path for a zip central directory that disagrees with its own entries.
 
 ## Not handled yet
-
-Documents made only of images come out empty. A line such as `<media: N files>` is needed, otherwise replacing a screenshot produces an empty diff.
 
 Formulas are invisible. calamine returns cached results, so rewriting a formula that evaluates to the same value shows nothing.
 

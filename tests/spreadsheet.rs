@@ -210,6 +210,15 @@ fn a_writer_that_refuses_is_reported_not_ignored() {
     // The line that reports an unreadable sheet goes through the same writer.
     let broken = xlsx_with("writefail2.xlsx", &[("Broken", String::new())], true);
     assert!(render(&broken, &cells(), &mut FailWriter).is_err());
+
+    // So does the package listing that follows the sheets.
+    let pics = xlsx_extra(
+        "writefail3.xlsx",
+        &[("S", String::new())],
+        false,
+        &[("xl/media/image1.png", vec![1, 2, 3, 4])],
+    );
+    assert!(render(&pics, &cells(), &mut FailWriter).is_err());
 }
 
 fn is_subsequence(a: &str, b: &str) -> bool {

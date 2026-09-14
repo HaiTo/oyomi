@@ -68,6 +68,18 @@ $ oyomi --sheet Items catalog.xlsx
 
 docx は段落と表のセルを 1 行ずつ、pptx はスライド番号つきで段落を 1 行ずつ出す。
 
+画像と埋め込みオブジェクトも一覧に出す。指紋にはパッケージが元から持っている CRC32 を使う。
+
+```console
+$ oyomi report.docx | grep '^media'
+media	word/media/image1.png	48213	crc32:9a3f1c22
+
+$ oyomi --row report.docx | grep '^media'
+media	.png	48213	crc32:9a3f1c22
+```
+
+スクリーンショットを差し替えても本文は 1 文字も変わらないため、この行がないと、画像を抱えた文書は何も起きなかったかのような差分になる。`--row` がパート名を落とすのは、保存するだけで image1 と image2 が振り直されることがあり、そのとき画像自体は何も変わっていないため。
+
 ## git textconv として使う
 
 ```console
@@ -129,8 +141,6 @@ $ cargo llvm-cov --summary-only
 行カバレッジは 99.6%。到達していない 1 箇所は、zip の中央ディレクトリが自分のエントリと食い違っている場合に備えた分岐。
 
 ## 未対応
-
-画像だけで出来た文書は空になる。`<media: N files>` のような行を出さないと、スクリーンショットを差し替えても差分が空になる。
 
 数式を見ていない。calamine が返すのはキャッシュ済みの計算結果なので、式を書き換えても値が同じだと差分に出ない。
 

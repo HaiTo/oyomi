@@ -1,6 +1,6 @@
 [package]
 name = "oyomi"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "Deterministic, diff-friendly text rendering of OOXML documents (xlsx/docx/pptx) for git textconv"
 license = "MIT"

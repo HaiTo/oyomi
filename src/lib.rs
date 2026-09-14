@@ -148,6 +148,10 @@ pub fn spreadsheet(path: &str, opts: &Options, out: &mut impl Write) -> Result<(
             }
         }
     }
+    // Asking for one sheet is asking about that sheet, not about the package.
+    if opts.sheet.is_none() {
+        media(path, opts.keys(), opts.list, out)?;
+    }
     Ok(())
 }
 
@@ -271,7 +275,7 @@ pub fn word(path: &str, keys: Keys, out: &mut impl Write) -> Result<(), String> 
         }
         buf.clear();
     }
-    Ok(())
+    media(path, keys, false, out)
 }
 
 pub fn slides(path: &str, keys: Keys, out: &mut impl Write) -> Result<(), String> {
@@ -328,7 +332,64 @@ pub fn slides(path: &str, keys: Keys, out: &mut impl Write) -> Result<(), String
             buf.clear();
         }
     }
+    media(path, keys, false, out)
+}
+
+/// Pictures, video and embedded objects, listed from the package rather than
+/// from the document body. A swapped screenshot changes no text at all, so a
+/// document carrying one would otherwise diff as though nothing happened.
+///
+/// The fingerprint is the CRC32 the zip already stores in its central
+/// directory: nothing is decompressed and no hashing dependency is needed.
+pub fn media(path: &str, keys: Keys, list: bool, out: &mut impl Write) -> Result<(), String> {
+    let Ok(f) = std::fs::File::open(path) else {
+        return Ok(());
+    };
+    let Ok(mut z) = zip::ZipArchive::new(f) else {
+        // The older binary spreadsheet formats are not packages at all.
+        return Ok(());
+    };
+    let mut items: Vec<(String, u64, u32)> = Vec::new();
+    for i in 0..z.len() {
+        let Ok(e) = z.by_index(i) else { continue };
+        let name = e.name().to_string();
+        if name.contains("/media/") || name.contains("/embeddings/") {
+            items.push((name, e.size(), e.crc32()));
+        }
+    }
+    if items.is_empty() {
+        return Ok(());
+    }
+    if list {
+        let bytes: u64 = items.iter().map(|i| i.1).sum();
+        return writeln!(out, "media\t{} files\t{bytes} bytes", items.len())
+            .map_err(|e| e.to_string());
+    }
+    match keys {
+        Keys::Address => items.sort_by(|a, b| a.0.cmp(&b.0)),
+        // Part names inside a package are positional artefacts: saving can
+        // renumber image1 and image2 without either picture changing.
+        Keys::Content => items.sort_by(|a, b| (a.2, a.1, &a.0).cmp(&(b.2, b.1, &b.0))),
+    }
+    for (name, size, crc) in items {
+        let label = match keys {
+            Keys::Address => name.clone(),
+            Keys::Content => kind_of(&name),
+        };
+        writeln!(out, "media\t{label}\t{size}\tcrc32:{crc:08x}").map_err(|e| e.to_string())?;
+    }
     Ok(())
+}
+
+/// The extension of a part, as the only part of its name worth keeping once the
+/// numbering is dropped.
+fn kind_of(name: &str) -> String {
+    match name.rsplit_once('.') {
+        Some((_, ext)) if !ext.is_empty() && !ext.contains('/') => {
+            format!(".{}", ext.to_lowercase())
+        }
+        _ => "(no extension)".to_string(),
+    }
 }
 
 /// The digits at the end of a part name: "ppt/slides/slide12.xml" -> 12.

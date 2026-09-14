@@ -96,6 +96,16 @@ fn styles() -> String {
 /// set the final sheet is declared in the workbook but its part is left out,
 /// which is how a damaged workbook reaches the renderer.
 pub fn xlsx_with(name: &str, sheets: &[(&str, String)], drop_last_part: bool) -> String {
+    xlsx_extra(name, sheets, drop_last_part, &[])
+}
+
+/// As [`xlsx_with`], plus arbitrary extra parts such as `xl/media/image1.png`.
+pub fn xlsx_extra(
+    name: &str,
+    sheets: &[(&str, String)],
+    drop_last_part: bool,
+    extra: &[(&str, Vec<u8>)],
+) -> String {
     let mut types = String::from(
         r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>"#,
@@ -147,7 +157,10 @@ pub fn xlsx_with(name: &str, sheets: &[(&str, String)], drop_last_part: bool) ->
     for (p, b) in &parts {
         all.push((p.as_str(), b.clone()));
     }
-    pack(name, &all)
+    let mut bytes: Vec<(&str, Vec<u8>)> =
+        all.into_iter().map(|(p, b)| (p, b.into_bytes())).collect();
+    bytes.extend(extra.iter().map(|(p, b)| (*p, b.clone())));
+    pack_bytes(name, &bytes)
 }
 
 pub fn xlsx(name: &str, sheets: &[(&str, String)]) -> String {
@@ -333,4 +346,20 @@ pub fn zip_with_unreadable_entry(file_name: &str, entry: &str) -> String {
     le16(&mut z, 0); // comment length
 
     write_tmp(file_name, &z)
+}
+
+/// A minimal docx carrying the given package parts alongside its document.
+pub fn docx_with_parts(name: &str, body: &[String], extra: &[(&str, Vec<u8>)]) -> String {
+    let doc = format!(
+        r#"<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>{}</w:body></w:document>"#,
+        body.concat()
+    );
+    let mut parts: Vec<(&str, Vec<u8>)> = vec![
+        ("[Content_Types].xml", content_types_docx().into_bytes()),
+        ("_rels/.rels", rels_to("word/document.xml").into_bytes()),
+        ("word/document.xml", doc.into_bytes()),
+    ];
+    parts.extend(extra.iter().map(|(p, b)| (*p, b.clone())));
+    pack_bytes(name, &parts)
 }
