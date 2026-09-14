@@ -5,6 +5,9 @@ edition = "2021"
 description = "Deterministic, diff-friendly text rendering of OOXML documents (xlsx/docx/pptx) for git textconv"
 license = "MIT"
 repository = "https://github.com/HaiTo/oyomi"
+readme = "README.md"
+keywords = ["ooxml", "xlsx", "docx", "diff", "textconv"]
+categories = ["command-line-utilities", "text-processing", "development-tools"]
 
 [dependencies]
 calamine = { version = "0.36", features = ["dates"] }
