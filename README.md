@@ -2,6 +2,8 @@
 
 Render Office documents (xlsx / docx / pptx) as deterministic text, so that `git diff` shows what actually changed.
 
+The name is *oyomi*, written お読み: Japanese for a reading of something, where the leading *o* doubles as Office.
+
 日本語版は [README.ja.md](README.ja.md) にあります。
 
 ## The problem
