@@ -22,9 +22,27 @@ Neither of them asks the question that matters for review: does the output diff 
 
 ## Install
 
+From crates.io:
+
 ```console
+$ cargo install oyomi
+```
+
+From the repository, to follow main:
+
+```console
+$ cargo install --git https://github.com/HaiTo/oyomi
+```
+
+From a clone, to work on it:
+
+```console
+$ git clone https://github.com/HaiTo/oyomi
+$ cd oyomi
 $ cargo install --path .
 ```
+
+All three need a Rust toolchain ([rustup](https://rustup.rs)) and put the binary in `~/.cargo/bin`. That directory has to be on your `PATH`, because git looks up a textconv driver the same way your shell does.
 
 ## Usage
 

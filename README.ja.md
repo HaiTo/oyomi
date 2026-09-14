@@ -20,9 +20,27 @@ openpyxl は全シート読めるが、遅いうえに整形は呼び出し側�
 
 ## インストール
 
+crates.io から入れる。
+
 ```console
+$ cargo install oyomi
+```
+
+main を追いたい場合はリポジトリから入れる。
+
+```console
+$ cargo install --git https://github.com/HaiTo/oyomi
+```
+
+手を入れる場合はクローンしてから入れる。
+
+```console
+$ git clone https://github.com/HaiTo/oyomi
+$ cd oyomi
 $ cargo install --path .
 ```
+
+どれも Rust のツールチェイン（[rustup](https://rustup.rs)）が要る。バイナリは `~/.cargo/bin` に入る。このディレクトリは `PATH` に通っている必要がある。git は textconv のドライバをシェルと同じやり方で探すため。
 
 ## 使い方
 
